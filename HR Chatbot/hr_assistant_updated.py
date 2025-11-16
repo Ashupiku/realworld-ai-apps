@@ -20,8 +20,10 @@ def install_packages():
     
     # Install working versions in correct order
     packages = [
+        'jinja2>=3.1.2',
+        'markupsafe==2.0.1',
         'pydantic==1.10.12',
-        'chromadb==0.4.15', 
+        'faiss-cpu', 
         'gradio==3.50.2',
         'langchain==0.1.20',
         'langchain-community==0.0.38',
@@ -51,8 +53,9 @@ def install_packages():
 def setup_sqlite():
     """Fix SQLite compatibility"""
     try:
-        import pysqlite3
-        sys.modules['sqlite3'] = pysqlite3
+        __import__('pysqlite3')
+        import sys
+        sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
         print("✅ Using pysqlite3 for ChromaDB compatibility")
     except ImportError:
         print("⚠️ pysqlite3 not available, using system SQLite (may cause issues with ChromaDB)")
@@ -152,7 +155,7 @@ def main():
         print(f"❌ Package installation failed: {e}")
         return
     
-    # Setup SQLite
+    # Setup SQLite BEFORE any other imports
     setup_sqlite()
     
     # Test network connectivity first
@@ -190,7 +193,7 @@ def main():
         from langchain_community.document_loaders import PyPDFLoader
         from langchain.text_splitter import RecursiveCharacterTextSplitter
         from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-        from langchain_community.vectorstores import Chroma
+        from langchain_community.vectorstores import FAISS
         from langchain.prompts import PromptTemplate
         from langchain.chains import RetrievalQA
         import gradio as gr
@@ -232,8 +235,8 @@ def main():
         test_embedding = embeddings.embed_query("test")
         print("✅ OpenAI connection successful")
         
-        print("🔍 Creating ChromaDB vector store...")
-        vectorstore = Chroma.from_documents(
+        print("🔍 Creating FAISS vector store...")
+        vectorstore = FAISS.from_documents(
             documents=texts,
             embedding=embeddings
         )
@@ -344,7 +347,7 @@ Answer:"""
     
     # Launch the interface
     try:
-        interface.launch(share=True)
+        interface.launch()
     except KeyboardInterrupt:
         print("\n👋 HR Assistant stopped. Goodbye!")
     except Exception as e:
